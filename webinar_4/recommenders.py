@@ -9,6 +9,8 @@ from implicit.als import AlternatingLeastSquares
 from implicit.nearest_neighbours import ItemItemRecommender  # нужен для одного трюка
 from implicit.nearest_neighbours import bm25_weight, tfidf_weight
 
+from utils import prefilter_items
+
 
 class MainRecommender:
     """Рекоммендации, которые можно получить из ALS
@@ -33,9 +35,17 @@ class MainRecommender:
         self.own_recommender = self.fit_own_recommender(self.user_item_matrix)
      
     @staticmethod
-    def prepare_matrix(data):
+    def prepare_matrix(data, take_n_popular=100):
+        data = prefilter_items(data, take_n_popular=100)
         
-        # your_code
+        user_item_matrix = pd.pivot_table(data, 
+                                  index='user_id', columns='item_id', 
+                                  values='quantity',
+                                  aggfunc='count', 
+                                  fill_value=0
+                                 )
+
+        user_item_matrix = user_item_matrix.astype(float)
         
         return user_item_matrix
     
@@ -83,6 +93,13 @@ class MainRecommender:
 
         # your_code
         # Практически полностью реализовали на прошлом вебинаре
+        res = [id_to_itemid[rec[0]] for rec in model.recommend(userid=userid_to_id[user], 
+                                    user_items=sparse_user_item,   # на вход user-item matrix
+                                    N=N, 
+                                    filter_already_liked_items=False, 
+                                    filter_items=None, 
+                                    recalculate_user=True)]
+        #top_n = 
 
         assert len(res) == N, 'Количество рекомендаций != {}'.format(N)
         return res
